@@ -128,7 +128,15 @@ AddRule ...
 */
 func (client *Client) AddRule(streamLabel string, rule *types.Rule) (*types.RuleRequestResponse, error) {
 	rulesEndpoint := fmt.Sprintf(rulesURL, client.account, streamLabel)
-	return client.postRule(rulesEndpoint, rule)
+	return client.postRules(rulesEndpoint, []*types.Rule{rule})
+}
+
+/*
+AddRules ...
+*/
+func (client *Client) AddRules(streamLabel string, rules []*types.Rule) (*types.RuleRequestResponse, error) {
+	rulesEndpoint := fmt.Sprintf(rulesURL, client.account, streamLabel)
+	return client.postRules(rulesEndpoint, rules)
 }
 
 /*
@@ -137,12 +145,21 @@ RemoveRule ...
 func (client *Client) RemoveRule(streamLabel string, rule *types.Rule) (*types.RuleRequestResponse, error) {
 	rulesEndpoint := fmt.Sprintf(rulesURL, client.account, streamLabel)
 	rulesEndpoint += "?_method=delete"
-	return client.postRule(rulesEndpoint, rule)
+	return client.postRules(rulesEndpoint, []*types.Rule{rule})
 }
 
-func (client *Client) postRule(endpoint string, rule *types.Rule) (*types.RuleRequestResponse, error) {
+/*
+RemoveRules ...
+*/
+func (client *Client) RemoveRules(streamLabel string, rules []*types.Rule) (*types.RuleRequestResponse, error) {
+	rulesEndpoint := fmt.Sprintf(rulesURL, client.account, streamLabel)
+	rulesEndpoint += "?_method=delete"
+	return client.postRules(rulesEndpoint, rules)
+}
+
+func (client *Client) postRules(endpoint string, rules []*types.Rule) (*types.RuleRequestResponse, error) {
 	body := &types.RuleRequest{
-		Rules: []*types.Rule{rule},
+		Rules: rules,
 	}
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
