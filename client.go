@@ -157,6 +157,15 @@ func (client *Client) RemoveRules(streamLabel string, rules []*types.Rule) (*typ
 	return client.postRules(rulesEndpoint, rules)
 }
 
+/*
+GetRule ...
+*/
+func (client *Client) GetRule(streamLabel string, rule *types.Rule) (*types.RuleRequestResponse, error) {
+	rulesEndpoint := fmt.Sprintf(rulesURL, client.account, streamLabel)
+	rulesEndpoint += "?_method=get"
+	return client.postRules(rulesEndpoint, []*types.Rule{rule})
+}
+
 func (client *Client) postRules(endpoint string, rules []*types.Rule) (*types.RuleRequestResponse, error) {
 	body := &types.RuleRequest{
 		Rules: rules,
@@ -182,6 +191,47 @@ func (client *Client) postRules(endpoint string, rules []*types.Rule) (*types.Ru
 	jsonResponse, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		gnipError := types.APIRequestError{}
+		json.Unmarshal(jsonResponse, &gnipError)
+		return nil, &gnipError
+	}
+
+	err = json.Unmarshal(jsonResponse, &reqResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return &reqResponse, nil
+}
+
+/*
+GetRules ...
+*/
+func (client *Client) GetRules(streamLabel string) (*types.RuleRequestResponse, error) {
+	rulesEndpoint := fmt.Sprintf(rulesURL, client.account, streamLabel)
+	req, err := http.NewRequest("GET", rulesEndpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "json")
+	req.SetBasicAuth(client.user, client.password)
+
+	resp, err := client.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	reqResponse := types.RuleRequestResponse{}
+	jsonResponse, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		gnipError := types.APIRequestError{}
+		json.Unmarshal(jsonResponse, &gnipError)
+		return nil, &gnipError
 	}
 
 	err = json.Unmarshal(jsonResponse, &reqResponse)

@@ -20,8 +20,9 @@ type RuleRequest struct {
 RuleRequestResponse ...
 */
 type RuleRequestResponse struct {
-	Summary ruleResponseSummary  `json:"summary"`
-	Detail  []ruleResponseDetail `json:"detail"`
+	Summary ruleResponseSummary  `json:"summary,omitempty"`
+	Rules   []Rule               `json:"rules,omitempty"`
+	Detail  []ruleResponseDetail `json:"detail,omitempty"`
 	Sent    string               `json:"sent,omitempty"`
 }
 
