@@ -6,7 +6,7 @@ Rule ...
 type Rule struct {
 	Value string `json:"value"`
 	Tag   string `json:"tag,omitempty"`
-	ID    string `json:"id,omitempty"`
+	ID    int64  `json:"id,omitempty"`
 }
 
 /*
@@ -41,18 +41,8 @@ type removeRuleSummary struct {
 }
 
 type ruleResponseDetail struct {
-	addRuleResponseDetail
-	removeRuleResponseDetail
-}
-
-type addRuleResponseDetail struct {
 	Rule    Rule   `json:"rule,omitempty"`
+	Message string `json:"message,omitempty"`
 	Created bool   `json:"created,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
-type removeRuleResponseDetail struct {
-	Rule    Rule   `json:"rule,omitempty"`
 	Deleted bool   `json:"deleted,omitempty"`
-	Message string `json:"message,omitempty"`
 }
