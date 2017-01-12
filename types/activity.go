@@ -1,4 +1,4 @@
-package gnip
+package types
 
 /*
 Activity ...

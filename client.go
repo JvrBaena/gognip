@@ -9,6 +9,11 @@ import (
 	"net/http"
 	"time"
 
+	"encoding/json"
+
+	"io/ioutil"
+
+	"github.com/JvrBaena/gognip/types"
 	"github.com/eapache/channels"
 )
 
@@ -66,32 +71,42 @@ func (client *Client) ConnectPowertrack(streamLabel string) (<-chan interface{},
 	req.Header.Set("Connection", "keep-alive")
 	req.SetBasicAuth(client.user, client.password)
 
-	go func() {
-		resp, _ := client.client.Do(req)
-		defer resp.Body.Close()
-		client.active = true
-		reader := bufio.NewReader(resp.Body)
-		for {
-			select {
-			case <-client.stop:
-				log.Println("STOP RECEIVED")
-				client.active = false
-				client.ch.Close()
-				break
-			default:
-				if client.active {
-					line, _ := reader.ReadBytes('\r')
-					line = bytes.TrimSpace(line)
+	go client.processResponse(req)
 
-					if line != nil && string(line[:]) != "" {
-						client.ch.In() <- line
-					}
+	return client.ch.Out(), nil
+}
+
+func (client *Client) processResponse(req *http.Request) {
+	resp, err := client.client.Do(req)
+	defer resp.Body.Close()
+
+	if err != nil {
+		log.Println("Error in Request")
+		client.active = false
+		client.ch.Close()
+		return
+	}
+
+	client.active = true
+	reader := bufio.NewReader(resp.Body)
+	for {
+		select {
+		case <-client.stop:
+			log.Println("STOP RECEIVED")
+			client.active = false
+			client.ch.Close()
+			break
+		default:
+			if client.active {
+				line, _ := reader.ReadBytes('\r')
+				line = bytes.TrimSpace(line)
+
+				if line != nil && string(line[:]) != "" {
+					client.ch.In() <- line
 				}
 			}
 		}
-	}()
-
-	return client.ch.Out(), nil
+	}
 }
 
 /*
@@ -106,4 +121,44 @@ IsActive ...
 */
 func (client *Client) IsActive() bool {
 	return client.active
+}
+
+/*
+AddRule ...
+*/
+func (client *Client) AddRule(streamLabel string, rule *types.Rule) (*types.RuleRequestResponse, error) {
+	rulesEndpoint := fmt.Sprintf(rulesURL, client.account, streamLabel)
+
+	body := &types.RuleRequest{
+		Rules: []*types.Rule{rule},
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", rulesEndpoint, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "json")
+	req.SetBasicAuth(client.user, client.password)
+
+	resp, err := client.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	reqResponse := types.RuleRequestResponse{}
+	jsonResponse, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(jsonResponse, &reqResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return &reqResponse, nil
 }
